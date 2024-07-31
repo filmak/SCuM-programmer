@@ -17,37 +17,44 @@ _Note_: you only need to do this once.
 
 ![](static/round_and_round.gif)
 
+A single Python script is used to flash SCuM then listen over serial for messages coming through from SCuM's UART TX.
+
 ### interact with SCuM's serial port
 
-* Connect SCuM's UART to the following pins on the nRF52840-DK
+* Connect SCuM's UART TX to the following pins on the nRF52840-DK.
 
+| DK      | SCuM                     | description                         |
+| ------- | ------------------------ | ----------------------------------- |
+| `P0.02` | `UART TX(SCuM transmits)`| SCuM UART TX passthrough            |
+| `GND`   | `GND`                    | ground                              |
+
+### load code onto SCuM
+
+Connect SCuM's pins to the corresponding nRF52840-DK pins.
 
 | DK      | SCuM                     | description                         |
 | ------- | ------------------------ | ----------------------------------- |
 | `VBAT`  | `VDDIO`                  | provides power to SCuM (1.8V)       |
-| `VBAT`  | bootload src select      | configure SCuM to bootload over 3wb |
+| `VBAT`  | `bootload src select`    | configure SCuM to bootload over 3wb |
 | `P0.28` | `3WB_CLK`                | 3-wire bus, clock signal            |
 | `P0.29` | `3WB_DATA`               | 3-wire bus, data signal             |
 | `P0.30` | `3WB_EN`                 | 3-wire bus, enable signal           |
 | `P0.31` | `HRESET`                 | hardware reset                      |
 | `P0.03` | `VDDD`                   | to perform a "tap" operation        |
-| `P0.02` | UART TX (SCuM transmits) | SCuM UART TX passthrough
-| `GND`   | `GND`                    | ground                              |
 
-
-* open the serial port corresponding to your nRF52840-DK using a serial terminal (e.g. TeraTerm), using **19200 baud**.
-
-### load code onto SCuM
-
+ # Programming / Serial RX app
 scum_nrf_programmer.py
--Build project in Keil.
--Copy the path to .../objects/<Project Name>.bin
--Edit "scum_nrf_programmer.py"    # Path to SCuM binary
-                                    binary_image="<path to>/objects/<Project Name>.bin"
-
-                                  # Com port of nRF board 
-                                    nRF_port="COM<X>"
+- Build project in Keil.
+- Copy the path to .../objects/<Project Name>.bin
+- Edit "scum_nrf_programmer.py" to include the path to your binary and the serial port (COM port) the nRF52840-DK is connecting to.
+```
+    # Path to SCuM binary
+    binary_image="<path to>/objects/<Project Name>.bin"`
+    # Com port of nRF board 
+    nRF_port="COM<X>"
+```
 - Example output of succsessful SCuM Flash
+
 ![](image.png)
 
 ### calibrate SCuM
