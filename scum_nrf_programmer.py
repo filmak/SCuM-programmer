@@ -1,4 +1,3 @@
-#python "C:\Users\mitch\OneDrive\SchoolFiles\_URMP\SCuM\Software\test_bootload.py"
 import serial
 import random
 import argparse
@@ -12,10 +11,8 @@ import time
 nRF_port="COM3" 
 
 # Path to SCuM binary
-#binary_image="C:/Users/mitch/OneDrive/SchoolFiles/_URMP/openWSN/openwsn-fw-2022/projects/scum/03oos_openwsn/Objects/03oos_openwsn.bin"
-binary_image="C:/Users/mitch/OneDrive/SchoolFiles/_URMP/SCuM/repo/scum-test-code/scm_v3c/applications/1_wire/Objects/1_Wire.bin"
-#binary_image="C:/Users/mitch/OneDrive/SchoolFiles/_URMP/openWSN/openwsn-fw-develop_FW-892/projects/scum/03oos_openwsn/Objects/03oos_openwsn.bin"
-#binary_image="C:/Users/mitch/OneDrive/SchoolFiles/_URMP/openWSN/openwsn-fw-titan-smart_stake\projects/scum/03oos_openwsn/Objects/03oos_openwsn.bin"
+#binary_image="C:/.../03oos_openwsn.bin"
+
 # End User Defined Parameters ************************************
 
 

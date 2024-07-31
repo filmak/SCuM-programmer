@@ -45,16 +45,17 @@ Connect SCuM's UART TX to the following pins on the nRF52840-DK.
 | `P0.02` | `UART TX(SCuM transmits)`| SCuM UART TX passthrough            |
 | `GND`   | `GND`                    | ground                              |s
 
- ### Programming / Serial RX app
+ ### Programming / Serial RX script
 scum_nrf_programmer.py
 - Build project in Keil.
 - Copy the path to .../objects/<Project Name>.bin
 - Edit "scum_nrf_programmer.py" to include the path to your binary and the serial port (COM port) the nRF52840-DK is connecting to.
 ```
-    # Path to SCuM binary
-    binary_image="<path to>/objects/<Project Name>.bin"
     # Com port of nRF board 
     nRF_port="COM<X>"
+    # Path to SCuM binary
+    binary_image="<path to>/objects/<Project Name>.bin"
+
 ```
 - Save scum_nrf_programmer.py
 - Example output of succsessful SCuM Flash
