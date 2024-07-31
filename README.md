@@ -38,7 +38,7 @@ Connect SCuM's pins to the corresponding nRF52840-DK pins.
 
 ### Listen to SCuM's serial port
 
-* Connect SCuM's UART TX to the following pins on the nRF52840-DK.
+Connect SCuM's UART TX to the following pins on the nRF52840-DK.
 
 | DK      | SCuM                     | description                         |
 | ------- | ------------------------ | ----------------------------------- |
