@@ -180,7 +180,10 @@ static void setup_ppi(void) {
     NRF_PPI->CH[3].TEP = (uint32_t)&NRF_GPIOTE->TASKS_OUT[GPIOTE_CALIBRATION_CLOCK2];
 
     // enable channels
-    NRF_PPI->CHENSET = (PPI_CHENSET_CH0_Enabled << PPI_CHENSET_CH0_Pos) | (PPI_CHENSET_CH1_Enabled << PPI_CHENSET_CH1_Pos);
+    NRF_PPI->CHENSET = (PPI_CHENSET_CH0_Enabled << PPI_CHENSET_CH0_Pos) | 
+                      (PPI_CHENSET_CH1_Enabled << PPI_CHENSET_CH1_Pos) |
+                      (PPI_CHENSET_CH2_Enabled << PPI_CHENSET_CH2_Pos) | 
+                      (PPI_CHENSET_CH3_Enabled << PPI_CHENSET_CH3_Pos);
 }
 
 static void run_calibration(void) {
