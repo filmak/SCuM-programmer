@@ -23,7 +23,14 @@ SCuM programmer.
 #define PROGRAMMER_DATA_PIN             29UL
 #define PROGRAMMER_TAP_PIN              3UL
 
+#define PROGRAMMER_EN_PIN2              7UL
+#define PROGRAMMER_HRST_PIN2            5UL
+#define PROGRAMMER_CLK_PIN2             8UL
+#define PROGRAMMER_DATA_PIN2            6UL
+
 #define CALIBRATION_CLK_PIN             28UL
+#define CALIBRATION_CLK_PIN2            8UL
+
 #define CALIBRATION_PULSE_WIDTH         50      // approximate duty cycle (out of 100)
 #define CALIBRATION_PERIOD              100     // period in ms
 #define CALIBRATION_FUDGE               308     // # of clock cycles of "fudge"
@@ -33,6 +40,7 @@ SCuM programmer.
 #define PROGRAMMER_VDDD_LO_PIN          15UL
 
 #define GPIOTE_CALIBRATION_CLOCK        0
+#define GPIOTE_CALIBRATION_CLOCK2       1
 
 //=========================== variables =======================================
 
@@ -120,6 +128,15 @@ static void setup_programmer(void) {
                                                 GPIO_PIN_CNF_INPUT_Disconnect << GPIO_PIN_CNF_INPUT_Pos |
                                                 GPIO_PIN_CNF_DRIVE_H0H1 << GPIO_PIN_CNF_DRIVE_Pos);;
 
+    NRF_P0->PIN_CNF[PROGRAMMER_DATA_PIN2]    = (GPIO_PIN_CNF_DIR_Output << GPIO_PIN_CNF_DIR_Pos |
+                                                GPIO_PIN_CNF_INPUT_Disconnect << GPIO_PIN_CNF_INPUT_Pos);
+    NRF_P0->PIN_CNF[PROGRAMMER_CLK_PIN2]     = (GPIO_PIN_CNF_DIR_Output << GPIO_PIN_CNF_DIR_Pos |
+                                                GPIO_PIN_CNF_INPUT_Disconnect << GPIO_PIN_CNF_INPUT_Pos);
+    NRF_P0->PIN_CNF[PROGRAMMER_HRST_PIN2]    = GPIO_PIN_CNF_DIR_Input << GPIO_PIN_CNF_DIR_Pos; // 0x00 configures the pin as an input, input buffer disconnected, pull up/down disabled (no pull)
+    NRF_P0->PIN_CNF[PROGRAMMER_EN_PIN2]      = (GPIO_PIN_CNF_DIR_Output << GPIO_PIN_CNF_DIR_Pos |
+                                                GPIO_PIN_CNF_INPUT_Disconnect << GPIO_PIN_CNF_INPUT_Pos);
+
+
     NRF_P0->OUTSET = 1 << PROGRAMMER_VDDD_HI_PIN;
     NRF_P1->OUTCLR = 1 << PROGRAMMER_VDDD_LO_PIN;
 }
@@ -127,6 +144,12 @@ static void setup_programmer(void) {
 static void setup_gpiote(void) {
     NRF_GPIOTE->CONFIG[GPIOTE_CALIBRATION_CLOCK] = (GPIOTE_CONFIG_MODE_Task << GPIOTE_CONFIG_MODE_Pos |
                                                     CALIBRATION_CLK_PIN << GPIOTE_CONFIG_PSEL_Pos |
+                                                    CALIBRATION_PORT << GPIOTE_CONFIG_PORT_Pos |
+                                                    GPIOTE_CONFIG_POLARITY_Toggle << GPIOTE_CONFIG_POLARITY_Pos |
+                                                    GPIOTE_CONFIG_OUTINIT_High << GPIOTE_CONFIG_OUTINIT_Pos);
+
+    NRF_GPIOTE->CONFIG[GPIOTE_CALIBRATION_CLOCK2] = (GPIOTE_CONFIG_MODE_Task << GPIOTE_CONFIG_MODE_Pos |
+                                                    CALIBRATION_CLK_PIN2 << GPIOTE_CONFIG_PSEL_Pos |
                                                     CALIBRATION_PORT << GPIOTE_CONFIG_PORT_Pos |
                                                     GPIOTE_CONFIG_POLARITY_Toggle << GPIOTE_CONFIG_POLARITY_Pos |
                                                     GPIOTE_CONFIG_OUTINIT_High << GPIOTE_CONFIG_OUTINIT_Pos);
@@ -149,6 +172,12 @@ static void setup_ppi(void) {
 
     NRF_PPI->CH[1].EEP = (uint32_t)&NRF_TIMER2->EVENTS_COMPARE[1];
     NRF_PPI->CH[1].TEP = (uint32_t)&NRF_GPIOTE->TASKS_OUT[GPIOTE_CALIBRATION_CLOCK];
+
+    NRF_PPI->CH[2].EEP = (uint32_t)&NRF_TIMER2->EVENTS_COMPARE[2];
+    NRF_PPI->CH[2].TEP = (uint32_t)&NRF_GPIOTE->TASKS_OUT[GPIOTE_CALIBRATION_CLOCK2];
+
+    NRF_PPI->CH[3].EEP = (uint32_t)&NRF_TIMER2->EVENTS_COMPARE[1];
+    NRF_PPI->CH[3].TEP = (uint32_t)&NRF_GPIOTE->TASKS_OUT[GPIOTE_CALIBRATION_CLOCK2];
 
     // enable channels
     NRF_PPI->CHENSET = (PPI_CHENSET_CH0_Enabled << PPI_CHENSET_CH0_Pos) | (PPI_CHENSET_CH1_Enabled << PPI_CHENSET_CH1_Pos);
@@ -175,19 +204,25 @@ static void bitband_byte(uint8_t byte, bool latch) {
     for (uint8_t j = 0; j < 8; j++) {
         if ((byte >> j) & 0x01) {
             NRF_P0->OUTSET = 1 << PROGRAMMER_DATA_PIN;
+            NRF_P0->OUTSET = 1 << PROGRAMMER_DATA_PIN2;
         }
         else if (!((byte >> j) & 0x01)) {
             NRF_P0->OUTCLR = 1 << PROGRAMMER_DATA_PIN;
+            NRF_P0->OUTCLR = 1 << PROGRAMMER_DATA_PIN2;
         }
         if (latch && (j == 7)) {
             NRF_P0->OUTSET = 1 << PROGRAMMER_EN_PIN;
+            NRF_P0->OUTSET = 1 << PROGRAMMER_EN_PIN2;
         }
         else {
             NRF_P0->OUTCLR = 1 << PROGRAMMER_EN_PIN;
+            NRF_P0->OUTCLR = 1 << PROGRAMMER_EN_PIN2;
         }
         // toggle the clock
         NRF_P0->OUTSET = 1 << PROGRAMMER_CLK_PIN;
+        NRF_P0->OUTSET = 1 << PROGRAMMER_CLK_PIN2;
         NRF_P0->OUTCLR = 1 << PROGRAMMER_CLK_PIN;
+        NRF_P0->OUTCLR = 1 << PROGRAMMER_CLK_PIN2;
     }
 }
 
@@ -206,11 +241,20 @@ static void _process_byte_received(uint8_t byte) {
             NRF_P0->OUTCLR = 1 << PROGRAMMER_CLK_PIN;
             NRF_P0->OUTCLR = 1 << PROGRAMMER_DATA_PIN;
             NRF_P0->OUTCLR = 1 << PROGRAMMER_EN_PIN;
+
+            NRF_P0->OUTCLR = 1 << PROGRAMMER_CLK_PIN2;
+            NRF_P0->OUTCLR = 1 << PROGRAMMER_DATA_PIN2;
+            NRF_P0->OUTCLR = 1 << PROGRAMMER_EN_PIN2;
+
             // execute hard reset (debug for now)
             NRF_P0->PIN_CNF[PROGRAMMER_HRST_PIN] = (GPIO_PIN_CNF_DIR_Output << GPIO_PIN_CNF_DIR_Pos |
                                                     GPIO_PIN_CNF_INPUT_Disconnect << GPIO_PIN_CNF_INPUT_Pos); // configure as output, set low
+            NRF_P0->PIN_CNF[PROGRAMMER_HRST_PIN2] = (GPIO_PIN_CNF_DIR_Output << GPIO_PIN_CNF_DIR_Pos |
+                                                    GPIO_PIN_CNF_INPUT_Disconnect << GPIO_PIN_CNF_INPUT_Pos); // configure as output, set low
             busy_wait_ms(14);
             NRF_P0->PIN_CNF[PROGRAMMER_HRST_PIN] = GPIO_PIN_CNF_DIR_Input << GPIO_PIN_CNF_DIR_Pos; // return to input
+            NRF_P0->PIN_CNF[PROGRAMMER_HRST_PIN2] =GPIO_PIN_CNF_DIR_Input << GPIO_PIN_CNF_DIR_Pos; // return to input
+            
             busy_wait_ms(14);
             break;
         }
@@ -233,7 +277,7 @@ static void _process_byte_received(uint8_t byte) {
 
             NRF_P0->OUTSET = (1 << PROGRAMMER_TAP_PIN); // first set pin high - NEVER CLEAR!!! scum will hate it if you do
             NRF_P0->PIN_CNF[PROGRAMMER_TAP_PIN] = (GPIO_PIN_CNF_DIR_Output << GPIO_PIN_CNF_DIR_Pos |
-                                                    GPIO_PIN_CNF_INPUT_Disconnect << GPIO_PIN_CNF_INPUT_Pos); // then enable output
+                                                    GPIO_PIN_CNF_INPUT_Disconnect << GPIO_PIN_CNF_INPUT_Pos); // then enable output            
             break;
         }
         case COMMAND_CALIBRATE:
@@ -292,8 +336,12 @@ void TIMER2_IRQHandler(void) {
 
             NRF_TIMER2->TASKS_STOP = 1; // stop the count!
             NRF_GPIOTE->CONFIG[GPIOTE_CALIBRATION_CLOCK] = 0;
+            NRF_GPIOTE->CONFIG[GPIOTE_CALIBRATION_CLOCK2] = 0;
             NRF_P0->PIN_CNF[CALIBRATION_CLK_PIN] = (GPIO_PIN_CNF_DIR_Output << GPIO_PIN_CNF_DIR_Pos |
                                                     GPIO_PIN_CNF_INPUT_Disconnect << GPIO_PIN_CNF_INPUT_Pos);
+            NRF_P0->PIN_CNF[CALIBRATION_CLK_PIN2] =(GPIO_PIN_CNF_DIR_Output << GPIO_PIN_CNF_DIR_Pos |
+                                                    GPIO_PIN_CNF_INPUT_Disconnect << GPIO_PIN_CNF_INPUT_Pos);
+
             _programmer_vars.calibration_done = true;
         }
     }
